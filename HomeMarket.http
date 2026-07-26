@@ -1,0 +1,6 @@
+@HomeMarket_HostAddress = http://localhost:5148
+
+GET {{HomeMarket_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
