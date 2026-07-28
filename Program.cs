@@ -1,11 +1,18 @@
 using HomeMarket.DbProfile;
+using HomeMarket.Mappings;
 using HomeMarket.Repository.Implementations;
 using HomeMarket.Services.Implementations;
 using HomeMarket.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 
+//builder.Services.AddAutoMapper(typeof(Mappings));
+builder.Services.AddAutoMapper(config =>
+{
+    config.AddProfile<Mappings>();
+});
 // Add services to the container.
 builder.Services.AddScoped<IProductService, ProductService>();
 
