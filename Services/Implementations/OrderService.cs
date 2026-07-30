@@ -26,100 +26,125 @@ namespace HomeMarket.Services.Implementations
             _mapper = mapper;
         }
 
-
-
-        public async Task<OrderConfirmationDto> PlaceOrderAsync(
-            CreateOrderDto dto)
+        public async Task<IEnumerable<OrderDto>> GetAllOrdersAsync()
         {
+            var orders = await _orderRepository.GetAllAsync();
 
-            // 1. Find or create customer
-
-            var customer =
-                await _customerRepository
-                .FindAsync(
-                    dto.Customer.Email,
-                    dto.Customer.PhoneNumber);
+            var mappedOrders = _mapper.Map<IEnumerable<OrderDto>>(orders);
+            return mappedOrders;
+        }
 
 
-            if (customer == null)
+        public async Task<OrderConfirmationDto> PlaceOrderAsync(CreateOrderDto dto)
+        {
+            try
             {
-                customer = _mapper.Map<Customers>(dto.Customer);
+                // 1. Find or create customer
 
-                await _customerRepository.AddAsync(customer);
-            }
-
+                var customer = await _customerRepository.FindAsync(dto.Customer.Email, dto.Customer.PhoneNumber);
 
 
-            decimal total = 0;
-
-
-            var orderItems = new List<OrderItem>();
-
-
-            // 2. Validate products
-
-            foreach (var item in dto.Items)
-            {
-                var product =
-                    await _productRepository
-                    .GetByIdAsync(item.ProductId);
-
-
-                if (product == null)
-                    throw new Exception(
-                        $"Product {item.ProductId} not found");
-
-
-                if (!product.IsAvailable)
-                    throw new Exception(
-                        $"{product.Name} is unavailable");
-
-
-
-                var orderItem = new OrderItem
+                if (customer == null)
                 {
-                    ProductId = product.ProductId,
-                    Quantity = item.Quantity,
-                    UnitPrice = product.Price,
-                    TotalPrice =
-                        product.Price * item.Quantity
+                    customer = _mapper.Map<Customers>(dto.Customer);
+
+                    try
+                    {
+                        await _customerRepository.AddAsync(customer);
+                    }
+                    catch (Exception ex) 
+                    {
+                        throw new Exception($"Failed to add new customer\n{ex.StackTrace}");
+                    }
+
+                    
+                }
+
+
+
+                    decimal total = 0;
+
+
+                var orderItems = new List<OrderItem>();
+
+
+                // 2. Validate products
+
+                foreach (var item in dto.Items)
+                {
+                    try
+                    {
+                        var product = await _productRepository.GetByIdAsync(item.ProductId);
+
+
+                        if (product == null)
+                            throw new Exception($"Product {item.ProductId} not found");
+
+
+                        if (!product.IsAvailable)
+                            throw new Exception($"{product.Name} is unavailable");
+
+
+
+                        var orderItem = new OrderItem
+                        {
+                            ProductId = product.ProductId,
+                            Quantity = item.Quantity,
+                            UnitPrice = product.Price,
+                            TotalPrice =
+                                product.Price * item.Quantity
+                        };
+
+
+                        total += orderItem.TotalPrice;
+
+
+                        orderItems.Add(orderItem);
+                    }
+                    catch (Exception ex) 
+                    {
+                        throw new Exception($"Failed to validate product {item.ProductId.ToString()}\n{ex.StackTrace}");
+                    }
+                   
+                }
+
+
+
+                // 3. Create order
+
+                var order = new Order
+                {
+                    Customer = customer,
+                    OrderDate = DateTime.UtcNow,
+                    PaymentMethod = dto.PaymentMethod,
+                    Status = OrderStatus.Pending,
+                    TotalAmount = total,
+                    Items = orderItems
                 };
 
+                try
+                {
+                    await _orderRepository.AddAsync(order);
 
-                total += orderItem.TotalPrice;
-
-
-                orderItems.Add(orderItem);
+                    return new OrderConfirmationDto
+                    {
+                        OrderId = order.OrderId,
+                        OrderDate = order.OrderDate,
+                        TotalAmount = order.TotalAmount,
+                        Status = order.Status,
+                        Message =
+                          "Your order has been received"
+                    };
+                }
+                catch(Exception ex)
+                {
+                    throw new Exception($"Failed to create order for customer {order.Customer.FirstName} {order.Customer.LastName}");
+                }          
             }
-
-
-
-            // 3. Create order
-
-            var order = new Order
+            catch (Exception ex) 
             {
-                Customer = customer,
-                OrderDate = DateTime.UtcNow,
-                PaymentMethod = dto.PaymentMethod,
-                Status = OrderStatus.Pending,
-                TotalAmount = total,
-                Items = orderItems
-            };
-
-
-            await _orderRepository.AddAsync(order);
-
-
-
-            return new OrderConfirmationDto
-            {
-                OrderId = order.OrderId,
-                OrderDate = order.OrderDate,
-                TotalAmount = order.TotalAmount,
-                Status = order.Status,
-                Message =
-                  "Your order has been received"
-            };
+                throw new Exception($"Error while trying to validate customer\n{ex.StackTrace}");
+            }
         }
 
 
@@ -137,25 +162,62 @@ namespace HomeMarket.Services.Implementations
             return _mapper.Map<OrderDto>(order);
         }
 
-
-
-        public async Task UpdateStatusAsync(
-            int orderId,
-            OrderStatus status)
+        public async Task<IEnumerable<OrderDto>> GetOrdersByStatusAsync(OrderStatus status)
         {
-            var order =
-                await _orderRepository.GetByIdAsync(orderId);
+            var orders = await _orderRepository.GetByStatusAsync(status);
+
+            var mappedOrders = _mapper.Map<IEnumerable<OrderDto>>(orders);
+            return mappedOrders;
+        }
 
 
-            if (order == null)
-                throw new Exception(
-                    "Order not found");
+
+        public async Task UpdateStatusAsync(int orderId, OrderStatus status)
+        {
+            try
+            {
+                var order = await _orderRepository.GetByIdAsync(orderId);
+                if (order == null)
+                    throw new Exception("Order not found");
 
 
-            order.Status = status;
+                order.Status = status;
 
+                try
+                {
+                    await _orderRepository.UpdateAsync(order);
+                }
+                catch(Exception ex)
+                {
+                    throw new Exception($"Failed to update order to status {status.ToString()}\n{ex.StackTrace}");
+                }
 
-            await _orderRepository.UpdateAsync(order);
+                
+            }
+            catch (Exception ex) 
+            {
+                throw new Exception($"Failed to retrieve order\n{ex.StackTrace}");
+            }
+           
+        }
+
+        public async Task CancelOrderAsync(int orderId)
+        {
+            try
+            {
+                var order = await  _orderRepository.GetByIdAsync(orderId);
+                
+                if(order == null)
+                {
+                    throw new Exception($"Order not found");
+                }
+
+                await _orderRepository.DeleteAsync(order);
+            }
+            catch(Exception ex)
+            {
+                throw new Exception($"Failed to delete order");
+            }
         }
     }
 }

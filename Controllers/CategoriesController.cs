@@ -1,43 +1,121 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using HomeMarket.DTOs.Category;
+using HomeMarket.Services.Interfaces;
+using Microsoft.AspNetCore.Mvc;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
 namespace HomeMarket.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/[controller]/v1")]
     [ApiController]
     public class CategoriesController : ControllerBase
     {
         // GET: api/<CategoriesController>
+        private readonly ICategoryService _categoryService;
+        private readonly ILogger<CategoriesController> _logger;
+
+        public CategoriesController(ICategoryService categoryService, ILogger<CategoriesController> logger)
+        {
+            _categoryService = categoryService;
+            _logger = logger;
+        }
+
         [HttpGet]
-        public IEnumerable<string> Get()
+        public async Task<IActionResult> GetCategories()
         {
-            return new string[] { "value1", "value2" };
+            try
+            {
+                var categories = await _categoryService.GetCategoriesAsync();
+                if (categories == null || !categories.Any())
+                {
+                    return NotFound("No categories found.");
+                }
+                return Ok(categories);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.StackTrace);
+            }
+            
         }
 
-        // GET api/<CategoriesController>/5
-        [HttpGet("{id}")]
-        public string Get(int id)
+        [HttpGet("get-category-by-id/{id:int}")]
+        public async Task<IActionResult> GetCategory(int id)
         {
-            return "value";
+            try
+            {
+                var category = await _categoryService.GetCategoryByIdAsync(id);
+
+                if (category == null)
+                    return NotFound($"category with id {id} not found");
+
+                return Ok(category);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.StackTrace);
+            }
+            
         }
 
-        // POST api/<CategoriesController>
-        [HttpPost]
-        public void Post([FromBody] string value)
+        [HttpPost("create-category")]
+        public async Task<IActionResult> CreateCategory([FromBody] CreateCategoryDto dto)
         {
+            try
+            {
+                if (dto == null) {
+                    return BadRequest("Please enter correct category details");
+                }
+                var category = await _categoryService.CreateCategoryAsync(dto);
+
+                if (category == null)
+                {
+                    return StatusCode(200,"Failed to create a category");
+                }
+                return CreatedAtAction(nameof(GetCategory), new { id = category.CategoryId }, category);
+            }
+            catch (Exception ex) 
+            {
+                return StatusCode(500, ex.StackTrace);
+            }
+            
         }
 
-        // PUT api/<CategoriesController>/5
-        [HttpPut("{id}")]
-        public void Put(int id, [FromBody] string value)
+        [HttpPut("update-category-by-id")]
+        public async Task<IActionResult> UpdateCategory([FromBody] UpdateCategoryDto dto)
         {
+            try
+            {
+                if (dto == null)
+                {
+                    return BadRequest();
+                }
+                var category = await _categoryService.UpdateCategoryAsync(dto);
+
+                return Ok(category);
+            }
+            catch(Exception ex)
+            {
+                return StatusCode(500, ex.StackTrace);
+            }
+            
         }
 
-        // DELETE api/<CategoriesController>/5
-        [HttpDelete("{id}")]
-        public void Delete(int id)
+        [HttpDelete("delete-category-by-id/{id:int}")]
+        public async Task<IActionResult> DeleteCategory(int id)
         {
+            try
+            {
+                await _categoryService.DeleteCategoryAsync(id);
+
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.StackTrace);
+            }
+
         }
     }
 }
+
