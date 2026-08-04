@@ -20,14 +20,15 @@ namespace HomeMarket.Controllers
 
         // GET: api/<CustomersController>
         [HttpGet("get-all-customers")]
-        public IEnumerable<string> Get()
+        public async Task<IActionResult> GetAllCustomersAsync()
         {
-            return new string[] { "value1", "value2" };
+            var customers = await _customerService.GetCustomerAsync();
+            return Ok(customers);
         }
 
 
 
-        [HttpGet("{id:int}")]
+        [HttpGet("get-customer-by-id/{id:int}")]
         public async Task<IActionResult> GetCustomer(int id)
         {
             var customer = await _customerService.GetCustomerByIdAsync(id);
@@ -38,7 +39,7 @@ namespace HomeMarket.Controllers
             return Ok(customer);
         }
 
-        [HttpGet("{email}/orders")]
+        [HttpGet("get-customer-orders{email}?{name}")]
         public async Task<IActionResult> GetCustomerOrders(string email, string name)
         {
             try
