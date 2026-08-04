@@ -60,9 +60,7 @@ namespace HomeMarket.Services.Implementations
                     
                 }
 
-
-
-                    decimal total = 0;
+                decimal total = 0;
 
 
                 var orderItems = new List<OrderItem>();
@@ -91,8 +89,7 @@ namespace HomeMarket.Services.Implementations
                             ProductId = product.ProductId,
                             Quantity = item.Quantity,
                             UnitPrice = product.Price,
-                            TotalPrice =
-                                product.Price * item.Quantity
+                            TotalPrice = product.Price * item.Quantity
                         };
 
 

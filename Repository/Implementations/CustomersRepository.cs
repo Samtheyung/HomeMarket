@@ -13,6 +13,13 @@ namespace HomeMarket.Repository.Implementations
             _context = context;
         }
 
+        public async Task<IEnumerable<Customers>> GetAllAsync()
+        {
+            return await _context.Customers
+                .Include(x => x.Orders)
+                .ToListAsync();
+        }
+
         public async Task<Customers?> GetByIdAsync(int customerId)
         {
             return await _context.Customers

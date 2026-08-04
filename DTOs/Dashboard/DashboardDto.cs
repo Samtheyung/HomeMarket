@@ -7,6 +7,8 @@
         public int PendingOrders { get; set; }
 
         public int DeliveredOrders { get; set; }
+        public int TotalCustomers { get; set; }
+        public int TotalProducts { get; set; }
 
         public decimal TotalRevenue { get; set; }
     }

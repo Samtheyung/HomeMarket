@@ -62,7 +62,7 @@ namespace HomeMarket.Controllers
             
         }
 
-        [HttpPost("create-product")]
+        [HttpPost("create-new-product")]
         public async Task<IActionResult> CreateProduct(CreateProductDto dto)
         {
             try
@@ -156,7 +156,7 @@ namespace HomeMarket.Controllers
         //    return NoContent();
         //}
 
-        [HttpPost("upload-image")]
+        [HttpPost("upload-new-image")]
         public async Task<IActionResult> UploadImage(IFormFile file)
         {
             var url = await _imageService.UploadImageAsync(file);

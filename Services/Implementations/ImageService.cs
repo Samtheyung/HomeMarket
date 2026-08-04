@@ -68,8 +68,7 @@ namespace HomeMarket.Services.Implementations
 
 
 
-        public Task DeleteImageAsync(
-            string imagePath)
+        public Task DeleteImageAsync(string imagePath)
         {
 
             var fullPath =

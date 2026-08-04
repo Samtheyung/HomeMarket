@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using HomeMarket.Services.Interfaces;
+using Microsoft.AspNetCore.Mvc;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -8,36 +9,61 @@ namespace HomeMarket.Controllers
     [ApiController]
     public class CustomersController : ControllerBase
     {
+        private readonly ICustomerService _customerService;
+
+        public CustomersController(
+            ICustomerService customerService)
+        {
+            _customerService = customerService;
+        }
+
+
         // GET: api/<CustomersController>
-        [HttpGet]
+        [HttpGet("get-all-customers")]
         public IEnumerable<string> Get()
         {
             return new string[] { "value1", "value2" };
         }
 
-        // GET api/<CustomersController>/5
-        [HttpGet("{id}")]
-        public string Get(int id)
+
+
+        [HttpGet("{id:int}")]
+        public async Task<IActionResult> GetCustomer(int id)
         {
-            return "value";
+            var customer = await _customerService.GetCustomerByIdAsync(id);
+
+            if (customer == null)
+                return NotFound();
+
+            return Ok(customer);
         }
 
-        // POST api/<CustomersController>
-        [HttpPost]
-        public void Post([FromBody] string value)
+        [HttpGet("{email}/orders")]
+        public async Task<IActionResult> GetCustomerOrders(string email, string name)
         {
-        }
+            try
+            {
+                var customer = await _customerService.FindCustomerAsync(email, name);
 
-        // PUT api/<CustomersController>/5
-        [HttpPut("{id}")]
-        public void Put(int id, [FromBody] string value)
-        {
-        }
+                if(customer == null)
+                {
+                    return NotFound($"Customer with email '{email}' not found.");
+                }
 
-        // DELETE api/<CustomersController>/5
-        [HttpDelete("{id}")]
-        public void Delete(int id)
-        {
+                return Ok(customer.Orders);
+
+                //return Ok(
+                //await _customerService.GetCustomerOrdersAsync(customer.CustomerId));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            
+            
+
+            
         }
     }
 }
+

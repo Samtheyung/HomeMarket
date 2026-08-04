@@ -49,7 +49,14 @@ builder.Services.AddDbContext<HomeMarketDbContext>(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+
+
 var app = builder.Build();
+var pathBase = builder.Configuration.GetSection("AppSettings")["VirtualPath"];
+if (!string.IsNullOrEmpty(pathBase))
+{
+    app.UsePathBase(pathBase);
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

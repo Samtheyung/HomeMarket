@@ -6,6 +6,8 @@ namespace HomeMarket.Repository.Implementations
     {
         Task<Customers?> GetByIdAsync(int customerId);
 
+        Task<IEnumerable<Customers>> GetAllAsync();
+
         Task<Customers?> FindAsync(string email, string phoneNumber);
 
         Task AddAsync(Customers customer);

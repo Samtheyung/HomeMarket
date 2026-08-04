@@ -21,12 +21,29 @@ namespace HomeMarket.Controllers
             _logger = logger;
         }
 
-        [HttpPost]
+        [HttpPost("place-new-order")]
         public async Task<IActionResult> PlaceOrder(CreateOrderDto dto)
         {
-            var order = await _orderService.PlaceOrderAsync(dto);
+            try
+            {
+                if (!dto.Customer.Email.Contains("@") || !dto.Customer.Email.Contains(".com"))
+                {
+                    return BadRequest("Invalid email format. Please provide a valid email address.");
+                }
+                if (dto.Customer.PhoneNumber.Length < 10 || dto.Customer.PhoneNumber.Length > 10)
+                {
+                    return BadRequest("Invalid phone number format. Please provide a valid phone number.");
+                }
+                var order = await _orderService.PlaceOrderAsync(dto);
 
-            return Ok(order);
+                return Ok(order);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error placing order");
+                return StatusCode(500, "An error occurred while placing the order.");
+            }
+
         }
 
         [HttpGet]
@@ -35,7 +52,7 @@ namespace HomeMarket.Controllers
             return Ok(await _orderService.GetAllOrdersAsync());
         }
 
-        [HttpGet("{id:int}")]
+        [HttpGet("get-order-by-status/{id:int}")]
         public async Task<IActionResult> GetOrder(int id)
         {
             var order = await _orderService.GetOrderAsync(id);
@@ -46,7 +63,7 @@ namespace HomeMarket.Controllers
             return Ok(order);
         }
 
-        [HttpGet("status/{status}")]
+        [HttpGet("get-status-by-status/{status}")]
         public async Task<IActionResult> GetOrdersByStatus(
             OrderStatus status)
         {
@@ -54,7 +71,7 @@ namespace HomeMarket.Controllers
                 await _orderService.GetOrdersByStatusAsync(status));
         }
 
-        [HttpPatch("{id:int}/status")]
+        [HttpPatch("{id:int}/update-status-by-id")]
         public async Task<IActionResult> UpdateStatus(
             int id,
             [FromBody] OrderStatus status)
